@@ -1,25 +1,57 @@
-baseURL: "https://blog.froystein.jp"
-languageCoded: "en-us"
-title: "blog.froystein.jp"
-theme: "yue"
-
-# Default config
-module:
-  hugoVersion:
-    extended: true
-    min: 0.136.0
+theme: yue
+baseURL: https://blog.froystein.jp/
+defaultContentLanguage: en
+defaultContentLanguageInSubdir: true
+enableGitInfo: false
+enableEmoji: true
+enableRobotsTXT: true
 
 params:
-  toc: true # Table of Contents
-  tocFolded: true
+  _merge: deep
+  rssFullContent: true
+  homePagerSize: 5
+  sectionPagerSize: 10000
+  images:
+    - favicon.ico # /static/favicon.ico
+
+frontmatter:
+  lastmod: ["lastmod", ":default"] # lastmod in front matter has highest precedence
 
 markup:
-  tableOfContents:
-    startLevel: 2
-    endLevel: 6
-    ordered: false
-  highlight:
-    guessSyntax: true
-    lineNoStart: 1
-    lineNos: true
-    noClasses: false
+  _merge: deep
+  goldmark:
+    renderer:
+      unsafe: true
+
+languages:
+  en:
+    contentDir: content/en
+    languageCode: en-US
+    languageDirection: ltr
+    languageName: English
+    title: blog.froystein.jp
+    weight: 10
+    menus:
+      main:
+        - name: Home
+          pageRef: /
+          weight: 10
+        - name: Posts
+          pageRef: /posts
+          weight: 20
+        - name: Tags
+          pageRef: /tags
+          weight: 30
+        - name: Categories
+          pageRef: /categories
+          weight: 40
+        - name: About
+          pageRef: /about
+          weight: 50
+    params:
+      dateFormat: Jan 02, 2006 # See https://gohugo.io/functions/time/format/
+      author: Stian Frøystein
+      footer:
+        copyright:
+          yearStart: 2025 # Optional
+          author: Stian Frøystein
