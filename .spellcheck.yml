@@ -4,6 +4,8 @@ matrix:
       lang: en
     dictionary:
       encoding: utf-8
+      wordlists:
+        - .wordlist.txt
     pipeline:
       - pyspelling.filters.markdown:
       - pyspelling.filters.html:
@@ -12,5 +14,5 @@ matrix:
             - code
             - pre
     sources:
-      - "**/*.md"
+      - "content/**/*.md"
     default_encoding: utf-8
