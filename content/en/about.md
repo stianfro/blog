@@ -1,6 +1,7 @@
----
-title: About
-date: 2024-06-27T23:14:15+08:00
----
++++
+date = '2025-02-13T16:21:08+09:00'
+draft = true
+title = 'About'
++++
 
-Yue is a minimal Hugo theme. Source code: <https://github.com/CyrusYip/hugo-theme-yue>.
+Stian's blog.
