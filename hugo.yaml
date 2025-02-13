@@ -42,12 +42,8 @@ languages:
         - name: Tags
           pageRef: /tags
           weight: 30
-        - name: Categories
-          pageRef: /categories
-          weight: 40
         - name: About
           pageRef: /about
-          weight: 50
     params:
       dateFormat: Jan 02, 2006 # See https://gohugo.io/functions/time/format/
       author: Stian Frøystein
