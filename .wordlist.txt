@@ -1,5 +1,7 @@
 Kubernetes
 OpenShift
+stianfro
+stian
 Stian
 Stian's
 Froystein
