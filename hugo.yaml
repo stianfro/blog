@@ -1,4 +1,4 @@
-theme: yue
+theme: hugo-theme-yue
 baseURL: https://blog.froystein.jp/
 defaultContentLanguage: en
 defaultContentLanguageInSubdir: true
