@@ -2,4 +2,4 @@ build:
 	hugo --gc --minify
 
 run:
-	hugo server --openBrowser
+	hugo server --disableFastRender --openBrowser
