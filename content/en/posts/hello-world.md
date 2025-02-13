@@ -7,4 +7,4 @@ title = 'Hello World'
 Welcome to my blog!
 
 I will primarily be writing guides related to Kubernetes, OpenShift and cloud native technology with the main theme
-being guides and documentatio I wish I had during my work.
+being guides and documentation I wish I had during my work.
