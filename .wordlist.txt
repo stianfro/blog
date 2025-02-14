@@ -36,3 +36,4 @@ ReadWriteMany
 containerd
 cri
 spegel
+securityContext
