@@ -98,7 +98,7 @@ spec:
 4. ConfigMap containing the registry configuration.
 
 Also, in a production environment you would probably want to configure this with a proper HA setup
-with muliple replicas, probes, anti-affinity and a pod disruption budget.\
+with multiple replicas, probes, anti-affinity and a pod disruption budget.\
 I have written a blog post on how to do this [here](https://engineering.intility.com/article/guide-to-high-availability-in-kubernetes)
 
 ### Service
