@@ -1,12 +1,16 @@
-+++
-date = '2025-02-14T10:02:35+09:00'
-draft = false
-title = 'How to set up a simple registry mirror in Kubernetes'
-+++
+---
+date: "2025-02-14T10:02:35+09:00"
+draft: false
+tags:
+  - kubernetes
+  - registry
+  - guide
+title: "How to set up a simple registry mirror in Kubernetes"
+---
 
 For the longest time I held off on setting up a container registry mirror because I assumed I would have to set up a
 potentially maintenance heavy solution like [Harbor](https://goharbor.io), [Zot](https://zotregistry.dev) or [Quay](https://quay.io), that also have way more features than I actually need in
-this specific usecase.
+this specific use case.
 
 If all you need is a mirror however, it is actually really simple to set up a bare minimum low-maintenance registry
 for this purpose in Kubernetes.
@@ -14,7 +18,7 @@ for this purpose in Kubernetes.
 There are a few reasons why having a mirror is a good idea:
 
 - Avoid rate limiting from upstream registries
-- Ensure you have access to vital images behind company firewall incase anything should happen to the upstream
+- Ensure you have access to vital images behind company firewall if anything should happen to the upstream
 - Faster pull speeds
 
 In this guide we will be using the [mirror](https://docs.docker.com/docker-hub/image-library/mirror) functionality of
@@ -81,7 +85,7 @@ spec:
     docker.io/registry@sha256:319881be2ee9e345d5837d15842a04268de6a139e23be42654fc7664fc6eaf52
    ```
 2. A persistent volume to store registry data in.
-3. ConfigMap containing the registry configurion.
+3. ConfigMap containing the registry configuration.
 
 Also, in a production environment you would probably want to configure this with a proper HA setup
 with muliple replicas, probes, anti-affinity and a pod disruption budget.\
