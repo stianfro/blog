@@ -4,8 +4,8 @@ draft = false
 title = 'How to set up a simple registry mirror in Kubernetes'
 +++
 
-For the longest time I held of on setting up a container registry mirror because I assumed I would have to set up a
-potentially maintenance heavy solution like Harbor, Zot or Quay, that also have way more features than I actually need in
+For the longest time I held off on setting up a container registry mirror because I assumed I would have to set up a
+potentially maintenance heavy solution like [Harbor](https://goharbor.io), [Zot](https://zotregistry.dev) or [Quay](https://quay.io), that also have way more features than I actually need in
 this specific usecase.
 
 If all you need is a mirror however, it is actually really simple to set up a bare minimum low-maintenance registry
@@ -13,7 +13,7 @@ for this purpose in Kubernetes.
 
 There are a few reasons why having a mirror is a good idea:
 
-- Avoid rate limiting from upstream regitries
+- Avoid rate limiting from upstream registries
 - Ensure you have access to vital images behind company firewall incase anything should happen to the upstream
 - Faster pull speeds
 
@@ -22,11 +22,11 @@ the official [registry](https://docs.docker.com/docker-hub/image-library/mirror)
 
 ## Deploying the registry to Kubernetes
 
-Let's set up our registry step by step, starting with the `Deployment`.
+Let's set up our registry step by step.
 
 ### Deployment
 
-Here is a basic example to get started:
+First of all we need a `Deployment`, here is a basic example to get started:
 
 ```yaml
 apiVersion: apps/v1
@@ -51,11 +51,11 @@ spec:
           imagePullPolicy: IfNotPresent
           resources:
             requests:
-              cpu: 100m
-              memory: 100Mi
+              cpu: 10m
+              memory: 32Mi
             limits:
               cpu: 100m
-              memory: 100Mi
+              memory: 128Mi
           ports:
             - containerPort: 5000
               name: http
@@ -89,16 +89,17 @@ I have written a blog post on how to do this [here](https://engineering.intility
 
 ### Service
 
-Nothing fancy, just a standard service to expose our registry on the cluster network.
-If your mirror is purely used inside the same cluster you could , but if not you will need an ingress of
-some sort to expose it (more on this later).
+Nothing fancy, just a standard `Service` to expose our registry on the cluster network.
+
+If your mirror is purely used inside the same cluster you could use the service hostname to access it
+(in this case `registry-mirror.<namespace>.svc.cluster.local`),
+but if not you will need an ingress of some sort to expose it (more on this later).
 
 ```yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: registry-mirror
-  namespace: registry-mirror
 spec:
   selector:
     app: registry-mirror
@@ -112,14 +113,13 @@ spec:
 
 ### ConfigMap
 
-To feed the registry with the configuration to make it a mirror, we use a ConfigMap:
+To feed the registry with the configuration to make it a mirror, we use a `ConfigMap`:
 
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: registry-config
-  namespace: registry-mirror
 data:
   config.yml: |
     # registry default config
@@ -152,7 +152,8 @@ you can find the full documentation with all configuration options [here](https:
 
 ### PersistentVolumeClaim
 
-If you want to persist the cache that is gradually built up by the you will want to mount
+If you want to persist the cache that is gradually built up by the registry,
+you can use a volume and mount it to `/var/lib/registry`:
 
 ```yaml
 apiVersion: v1
@@ -171,12 +172,40 @@ spec:
 
 If you are using more than one replica you will need to use ReadWriteMany (RWX) as the access mode.
 
+As mentioned briefly above it is also possible to store this data in an s3 bucket or similar.
+
 ### Ingress / Route
 
-```yaml
+How you handle ingress traffic in your cluster depends a lot on your environment,
+but here is a basic example on how to use an `Ingress`:
 
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: registry-ingress
+spec:
+  rules:
+    - host: mirror.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: registry-mirror
+                port:
+                  number: 5000
 ```
 
-## Closing thoughts
+## Wrapping up
 
-There are some other cool looking simple registries like spegel out there ... does not work with openshift.
+That is all it takes to set up a simple registry mirror that requires minimum effort
+to maintain,
+
+There are some other cool registry mirroring solutions out there like [spegel](https://github.com/spegel-org/spegel),
+but it unfortunately currently only supports containerd as the container runtime
+and [does not work with OpenShift/cri-o](https://github.com/spegel-org/spegel/issues/36) which is what I usually work with.
+
+In the next part we will be looking at how to configure nodes in a cluster to use a
+mirror when pulling images.
