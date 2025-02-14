@@ -69,14 +69,23 @@ spec:
             - name: config
               mountPath: /etc/docker/registry/config.yml
               subPath: config.yml
+          securityContext: # 2
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
       restartPolicy: Always
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: registry-data # 2
+            claimName: registry-data # 3
         - name: config
           configMap:
-            name: registry-config # 3
+            name: registry-config # 4
 ```
 
 1. Ideally use a digest to refer to a specific image here. For example, if you wanted to use [registry:2.8.3](https://hub.docker.com/layers/library/registry/2.8.3/images/sha256-57350583fba19eaab4b4632aafa1537483a390dfd29c5b37c9d59e2467ce1b8e)
@@ -84,8 +93,9 @@ spec:
    ```
     docker.io/registry@sha256:319881be2ee9e345d5837d15842a04268de6a139e23be42654fc7664fc6eaf52
    ```
-2. A persistent volume to store registry data in.
-3. ConfigMap containing the registry configuration.
+2. It is good hygiene to always use sane securityContext settings.
+3. A persistent volume to store registry data in.
+4. ConfigMap containing the registry configuration.
 
 Also, in a production environment you would probably want to configure this with a proper HA setup
 with muliple replicas, probes, anti-affinity and a pod disruption budget.\
