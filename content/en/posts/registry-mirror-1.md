@@ -1,5 +1,182 @@
 +++
 date = '2025-02-14T10:02:35+09:00'
-draft = true
+draft = false
 title = 'How to set up a simple registry mirror in Kubernetes'
 +++
+
+For the longest time I held of on setting up a container registry mirror because I assumed I would have to set up a
+potentially maintenance heavy solution like Harbor, Zot or Quay, that also have way more features than I actually need in
+this specific usecase.
+
+If all you need is a mirror however, it is actually really simple to set up a bare minimum low-maintenance registry
+for this purpose in Kubernetes.
+
+There are a few reasons why having a mirror is a good idea:
+
+- Avoid rate limiting from upstream regitries
+- Ensure you have access to vital images behind company firewall incase anything should happen to the upstream
+- Faster pull speeds
+
+In this guide we will be using the [mirror](https://docs.docker.com/docker-hub/image-library/mirror) functionality of
+the official [registry](https://docs.docker.com/docker-hub/image-library/mirror) image.
+
+## Deploying the registry to Kubernetes
+
+Let's set up our registry step by step, starting with the `Deployment`.
+
+### Deployment
+
+Here is a basic example to get started:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry-mirror
+  labels:
+    app: registry-mirror
+spec:
+  selector:
+    matchLabels:
+      app: registry-mirror
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: registry-mirror
+    spec:
+      containers:
+        - name: registry
+          image: docker.io/registry:latest # 1
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          ports:
+            - containerPort: 5000
+              name: http
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry
+            - name: config
+              mountPath: /etc/docker/registry/config.yml
+              subPath: config.yml
+      restartPolicy: Always
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: registry-data # 2
+        - name: config
+          configMap:
+            name: registry-config # 3
+```
+
+1. Ideally use a digest to refer to a specific image here. For example, if you wanted to use [registry:2.8.3](https://hub.docker.com/layers/library/registry/2.8.3/images/sha256-57350583fba19eaab4b4632aafa1537483a390dfd29c5b37c9d59e2467ce1b8e)
+   you could refer to it like this in the deployment:
+   ```
+    docker.io/registry@sha256:319881be2ee9e345d5837d15842a04268de6a139e23be42654fc7664fc6eaf52
+   ```
+2. A persistent volume to store registry data in.
+3. ConfigMap containing the registry configurion.
+
+Also, in a production environment you would probably want to configure this with a proper HA setup
+with muliple replicas, probes, anti-affinity and a pod disruption budget.\
+I have written a blog post on how to do this [here](https://engineering.intility.com/article/guide-to-high-availability-in-kubernetes)
+
+### Service
+
+Nothing fancy, just a standard service to expose our registry on the cluster network.
+If your mirror is purely used inside the same cluster you could , but if not you will need an ingress of
+some sort to expose it (more on this later).
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry-mirror
+  namespace: registry-mirror
+spec:
+  selector:
+    app: registry-mirror
+  type: ClusterIP
+  ports:
+    - name: registry-mirror
+      protocol: TCP
+      port: 5000
+      targetPort: http
+```
+
+### ConfigMap
+
+To feed the registry with the configuration to make it a mirror, we use a ConfigMap:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-config
+  namespace: registry-mirror
+data:
+  config.yml: |
+    # registry default config
+    version: 0.1
+    log:
+      fields:
+        service: registry
+    storage:
+      cache:
+        blobdescriptor: inmemory
+      filesystem:
+        rootdirectory: /var/lib/registry
+    http:
+      addr: :5000
+      headers:
+        X-Content-Type-Options: [nosniff]
+    health:
+      storagedriver:
+        enabled: true
+        interval: 10s
+        threshold: 3
+
+    # mirror config
+    proxy:
+      remoteurl: https://registry-1.docker.io
+```
+
+If you want to tweak this (for example if you want to store data in an s3 bucket or set up authentication)
+you can find the full documentation with all configuration options [here](https://distribution.github.io/distribution/about/configuration).
+
+### PersistentVolumeClaim
+
+If you want to persist the cache that is gradually built up by the you will want to mount
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: registry-data
+  labels:
+    app: registry-data
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+If you are using more than one replica you will need to use ReadWriteMany (RWX) as the access mode.
+
+### Ingress / Route
+
+```yaml
+
+```
+
+## Closing thoughts
+
+There are some other cool looking simple registries like spegel out there ... does not work with openshift.
