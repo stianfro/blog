@@ -9,7 +9,7 @@ tags:
 title: "Configuring clients to use a container registry mirror"
 ---
 
-This is part two in a series of blogposts about container registry mirrors.
+This is part two in a series of blog posts about container registry mirrors.
 [The previous post](https://blog.froystein.jp/en/posts/registry-mirror-1/) focused on setting up a mirror in Kubernetes, now we will look at how to configure various clients to use it.
 
 {{< notice note >}}
