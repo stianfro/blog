@@ -52,3 +52,7 @@ languages:
         copyright:
           yearStart: 2025 # Optional
           author: Stian Frøystein
+
+module:
+  imports:
+    - path: github.com/martignoni/hugo-notice

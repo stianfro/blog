@@ -37,3 +37,17 @@ containerd
 cri
 spegel
 securityContext
+conf
+toml
+gcr
+io
+Podman
+www
+redhat
+CRD
+CRDs
+IDMS
+ITMS
+MachineConfig
+MachineConfigs
+md
