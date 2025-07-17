@@ -14,7 +14,7 @@ This is part two in a series of blog posts about container registry mirrors.
 
 {{< notice note >}}
 If you do not have your own mirror you can use https://mirror.gcr.io, which is what will be used in this guide for simplicity.
-{{< /notice >}}
+{{</notice>}}
 
 ## Docker
 

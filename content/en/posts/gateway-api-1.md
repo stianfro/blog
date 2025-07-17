@@ -10,13 +10,17 @@ title: "Gateway API for dummies"
 I recently had a use-case where I could finally tinker with Gateway API, a new interface for handling service traffic in Kubernetes. You can think of it as a successor to the current Ingress APIs.
 Gateway API is built and maintained by the Kubernetse Network Special Interest Group.
 
-Instead of an IngressController you set up a Gateway
-
 | Ingress           | Gateway                       |
 | ----------------- | ----------------------------- |
 | IngressClass      | GatewayClass                  |
 | IngressController | Gateway                       |
 | Ingress           | HTTPRoute, TLSRoute, TCPRoute |
+
+Lets take a look at a simple example with HTTPRoute.
+
+{{< notice note >}}
+If you want to test Envoy Gateway locally, I recommend you look at their [quickstart](https://gateway.envoyproxy.io/docs/tasks/quickstart) instead of using my examples as they have been simplified quite a bit.
+{{</notice>}}
 
 Instead of annotating an ingress with settings on how it should handle various types of traffic, you can use resources like BackendTrafficPolicy and (in the case of Envoy) BackendTLSTraffic.
 You can refer to these from an individual HTTPRoute or for the whole Gateway.
@@ -148,7 +152,7 @@ status:
 
 It is also very noticable when working with all the different resources. Every field of every CRD is extremely well documented and has great validation as well,
 
-Just take a look at the documentation for the [`.spec.hostnames`](https://github.com/kubernetes-sigs/gateway-api/blob/bc08c0ff375ad76fdda7089121c6e1e06662c137/apis/v1/httproute_types.go#L55-L125) field in the HTTPRoute resource: as an example:
+Just take a look at the documentation for the [`.spec.hostnames`](https://github.com/kubernetes-sigs/gateway-api/blob/bc08c0ff375ad76fdda7089121c6e1e06662c137/apis/v1/httproute_types.go#L55-L125) field in the HTTPRoute resource as an example:
 
 ```go
 // HTTPRouteSpec defines the desired state of HTTPRoute
@@ -226,12 +230,14 @@ no luck with tlsroute for some reason.
 
 deployment modes, multi-tenancy (part 2?)
 
-![gateway-api illustration](../../../assets/2025-07-16-12-35-56.png)
+![gateway-api illustration](/images/2025-07-16-12-35-56.png)
 
 In my case this diagram will most of the time look like this:
 _TODO: stian in the diagram_
 
 ns / ew
+
+In the next post I will go through how to set up Envoy Gateway for multi-tenancy.
 
 Useful links:
 
