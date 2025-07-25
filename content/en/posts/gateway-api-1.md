@@ -10,11 +10,15 @@ title: "Gateway API for dummies"
 I recently had a use-case where I could finally tinker with Gateway API, a new interface for handling service traffic in Kubernetes. You can think of it as a successor to the current Ingress APIs.
 Gateway API is built and maintained by the Kubernetse Network Special Interest Group.
 
-| Ingress           | Gateway                       |
+If you are familiar with Ingress in Kubernetes, think of Gateway API like this:
+
+| Ingress API       | Gateway API                   |
 | ----------------- | ----------------------------- |
 | IngressClass      | GatewayClass                  |
 | IngressController | Gateway                       |
 | Ingress           | HTTPRoute, TLSRoute, TCPRoute |
+
+What is important to be aware of is that Gateway API is just an API, it is just a set of CRDs that you install in your cluster and does not come with a controller of any kind. A separate Gateway Controller has to be installed for things to work, there are [many implementations to choose from](https://gateway-api.sigs.k8s.io/implementations) but some examples include Envoy Gateway, Traefik Proxy, Cilium and Istio.
 
 Lets take a look at a simple example with HTTPRoute.
 
@@ -40,8 +44,6 @@ spec:
       port: 80
       protocol: HTTP
 ```
-
-What is important to be aware of is that Gateway API is just an API, it is just a set of CRDs that you install in your cluster and does not come with a controller of any kind. A separate Gateway Controller has to be installed for things to work, there are [many implementations to choose from] but some examples include Envoy Gateway, Traefik Proxy, Cilium and Istio.
 
 compare ingress / ingresscontroller (openshift) with gateway api
 
