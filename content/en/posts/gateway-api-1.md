@@ -12,7 +12,7 @@ Gateway API is built and maintained by the Kubernetse Network Special Interest G
 
 What is important to be aware of is that Gateway API is just an API, it is just a set of CRDs that you install in your cluster and does not come with a controller of any kind. A separate Gateway Controller has to be installed for things to work, there are [many implementations to choose from](https://gateway-api.sigs.k8s.io/implementations) but some examples include Envoy Gateway, Traefik Proxy, Cilium and Istio.
 
-In this post I will focus on [Envoy Gateway](https://gateway.envoyproxy.io) but the general concepts should stay the same in other implementations.
+In this post I will focus on [Envoy Gateway](https://gateway.envoyproxy.io) but the general concepts should stay the same for other implementations.
 
 When explaining Gateway API it can be useful to have the illustration below in the back of your mind.
 Feel free to use it as a reference as you read on.
@@ -54,12 +54,15 @@ metadata:
 ```
 
 The next resource it the Gateway itself. In OpenShift this is equivalent to the `IngressController` resource but for other Ingress providers there is usually not a separate resource for this.
-The Gateway is responsible for configuring the infrastructur
-In the case of Envoy Gateway, an Envoy proxy is started and is what does the actual proxying and loadbalancing.
+The Gateway is responsible for configuring the infrastructure so that network traffic in some way (up to the implementation) can reach the cluster, for example with a LoadBalancer service, in addition to the software that routes this traffic (typically a reverse proxy of some sort).
 
-```
+In the case of Envoy Gateway, an [Envoy proxy](https://www.envoyproxy.io) is started and is what does the actual proxying and loadbalancing.
+Below is a simple example of a Gateway with a single http listener:
+
+```yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
+
 spec:
   gatewayClassName: cluster-gateway
   listeners:
@@ -93,7 +96,7 @@ spec:
         - group: ""
           kind: Service
           name: backend
-          port: 3000
+          port: 8080
           weight: 1
       matches:
         - path:
