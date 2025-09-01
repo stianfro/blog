@@ -20,13 +20,15 @@ Feel free to use it as a reference as you read on.
 ![gateway-api illustration](/images/2025-07-16-12-35-56.png)
 _Gateway API illustration from the official documentation_
 
+# GatewayClass
+
 We start at the top, with the GatewayClass (equivalent to an IngressClass).
 
 {{< notice note >}}
 If you want to test Envoy Gateway locally, I recommend you look at their [quickstart](https://gateway.envoyproxy.io/docs/tasks/quickstart) instead of using my examples as they have been simplified a bit.
 {{</notice>}}
 
-In the simplest type of setup, you would only need a single GatewayClass
+In the simplest type of setup, you would only need a single GatewayClass:
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -51,6 +53,8 @@ kind: GatewayClass
 metadata:
   name: private
 ```
+
+# Gateway
 
 The next resource it the Gateway itself. In OpenShift this is equivalent to the `IngressController` resource but for other Ingress providers there is usually not a separate resource for this.
 The Gateway is responsible for configuring the infrastructure so that network traffic in some way (up to the implementation) can reach the cluster, for example with a LoadBalancer service, in addition to the software that routes this traffic (typically a reverse proxy of some sort).
@@ -106,7 +110,8 @@ spec:
         allocateLoadBalancerNodePorts: false
 ```
 
-We can also add more listeners if we want to, here is an example with listeners for https (terminated in the gateway) and passthrough tls:
+We can also add more listeners if we want to, here is an example with listeners for https (terminated in the gateway) and passthrough tls.
+Hostname matchers are added to control what listener an httproute is attached to.
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -142,13 +147,19 @@ spec:
         mode: Passthrough
 ```
 
-Lets take a look at a simple example with HTTPRoute.
+In this case an httproute with `www.example.com` as the hostname would match the _HTTP_ listener, while httproutes with hostnames like `foo.example.com` or `bar.example.com` would match the _HTTPS_ listener.
+This can of course be tweaked and modified further and you can read more about it in the `HTTPRouteSpec` mentioned below.
+The tls listener can only be used by a TLSRoute.
+
+# HTTPRoute
+
+Now lets take a look at a simple example on how to expose an application with an HTTPRoute.
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: backend
+  name: static-site
 spec:
   parentRefs:
     - name: eg
@@ -158,8 +169,8 @@ spec:
     - backendRefs:
         - group: ""
           kind: Service
-          name: backend
-          port: 3000
+          name: static-site
+          port: 8080
           weight: 1
       matches:
         - path:
@@ -167,36 +178,45 @@ spec:
             value: /
 ```
 
+# TLSRoute
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  name: backend-tls
+spec:
+  parentRefs:
+    - name: eg
+  hostnames:
+    - "foo.example.com"
+  rules:
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: backend
+          port: 443
+          weight: 1
+```
+
+# TODO: change out this image with an own illustration
+
+![httproute](/images/2025-09-01-18-33-49.png)
+
+# Optional and Envoy-specific resources / Policy Resources
+
+BackendTrafficPolicy, BackendTLSPolicy, SecurityPolicy
+
+# WIP SCRIBBLES BELOW
+
 Instead of annotating an ingress with settings on how it should handle various types of traffic, you can use resources like BackendTrafficPolicy and (in the case of Envoy) BackendTLSPolicy.
 You can refer to these from an individual HTTPRoute or for the whole Gateway.
 instead of bla bla you can have httproute but also tlsroute and tcproute
 
-You can add one or more _listeners_ to a Gateway resource,
-
-```yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-spec:
-  listeners:
-    - name: http
-      allowedRoutes:
-        namespaces:
-          from: All
-      hostname: "*.example.com"
-      port: 80
-      protocol: HTTP
-    - name: TCP
-      allowedRoutes:
-        namespaces:
-          from: All
-      hostname: "*.amqp.example.com"
-      port: 5671
-      protocol: TCP
-```
-
 compare ingress / ingresscontroller (openshift) with gateway api
 
 praise statuses
+
 When using Gateway API you can really tell that is a modern Kubernetes API with a lot of thought put into it. This is especially true when it comes to the status and conditions for all the resources.
 Just by looking at the status of a resource you can quickly tell if everything is working or if there is something wrong with the configuration and _why_.
 Many Kubernetes APIs are unfortunately not great at this, so it is very refreshing to see it done well and it is a joy to work with.
