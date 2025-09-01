@@ -23,34 +23,33 @@ _Gateway API illustration from the official documentation_
 We start at the top, with the GatewayClass (equivalent to an IngressClass).
 
 {{< notice note >}}
-If you want to test Envoy Gateway locally, I recommend you look at their [quickstart](https://gateway.envoyproxy.io/docs/tasks/quickstart) instead of using my examples as they have been simplified quite a bit.
+If you want to test Envoy Gateway locally, I recommend you look at their [quickstart](https://gateway.envoyproxy.io/docs/tasks/quickstart) instead of using my examples as they have been simplified a bit.
 {{</notice>}}
 
 In the simplest type of setup, you would only need a single GatewayClass
 
-```
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
-  name: cluster-gateway
+  name: eg
 spec:
-  controllerName: "example.net/gateway-controller"
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
 ```
 
 A common scenario is when you want to provide developers with a way of exposing applications publicly on the internet, but also the ability to expose them on an internal private network.
 In this case you would typically create two GatewayClasses like this:
 
-```
+```yaml
 kind: GatewayClass
 metadata:
   name: internet
-  ...
 ```
 
-```
+```yaml
 kind: GatewayClass
 metadata:
   name: private
-  ...
 ```
 
 The next resource it the Gateway itself. In OpenShift this is equivalent to the `IngressController` resource but for other Ingress providers there is usually not a separate resource for this.
@@ -62,17 +61,85 @@ Below is a simple example of a Gateway with a single http listener:
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
-
 spec:
-  gatewayClassName: cluster-gateway
+  gatewayClassName: eg
   listeners:
     - name: http
-      allowedRoutes:
-        namespaces:
-          from: All
-      hostname: "*.example.com"
       port: 80
       protocol: HTTP
+```
+
+The gateway deployment can be customized using an `EnvoyProxy` resource that is attached via `spec.infrastructure.parametersRef`:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+spec:
+  gatewayClassName: eg
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: proxy-config
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: proxy-config
+spec:
+  logging:
+    level:
+      default: warn
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        replicas: 3
+      envoyService:
+        annotations:
+          metallb.universe.tf/address-pool: default
+        type: LoadBalancer
+        allocateLoadBalancerNodePorts: false
+```
+
+We can also add more listeners if we want to, here is an example with listeners for https (terminated in the gateway) and passthrough tls:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: eg
+spec:
+  gatewayClassName: eg
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: proxy-config
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "www.example.com"
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.example.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          # assume this contains a wildcard certificate for *.example.com
+          - kind: Secret
+            name: eg-https
+    - name: tls
+      port: 6443
+      protocol: TLS
+      tls:
+        mode: Passthrough
 ```
 
 Lets take a look at a simple example with HTTPRoute.
@@ -82,21 +149,17 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: backend
-  namespace: marketing
 spec:
-  hostnames:
-    - www.marketing.example.com
   parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: internal
-      namespace: gateway-a
+    - name: eg
+  hostnames:
+    - "www.example.com"
   rules:
     - backendRefs:
         - group: ""
           kind: Service
           name: backend
-          port: 8080
+          port: 3000
           weight: 1
       matches:
         - path:
@@ -104,7 +167,7 @@ spec:
             value: /
 ```
 
-Instead of annotating an ingress with settings on how it should handle various types of traffic, you can use resources like BackendTrafficPolicy and (in the case of Envoy) BackendTLSTraffic.
+Instead of annotating an ingress with settings on how it should handle various types of traffic, you can use resources like BackendTrafficPolicy and (in the case of Envoy) BackendTLSPolicy.
 You can refer to these from an individual HTTPRoute or for the whole Gateway.
 instead of bla bla you can have httproute but also tlsroute and tcproute
 
