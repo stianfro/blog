@@ -106,3 +106,4 @@ ClientTrafficPolicy
 HTTPRouteFilter
 namespaces
 IngressClassName
+ingressClassName
