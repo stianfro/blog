@@ -104,4 +104,5 @@ targetRefs
 BackendTrafficPolicy
 ClientTrafficPolicy
 HTTPRouteFilter
-
+namespaces
+IngressClassName
