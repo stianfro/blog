@@ -164,6 +164,46 @@ In this case an httproute with `www.example.com` as the hostname would match the
 This can of course be tweaked and modified further and you can read more about it in the `HTTPRouteSpec` mentioned below.
 The tls listener can only be used by a TLSRoute.
 
+By default a Gateway can only be used by \*routes in the same namespace, this can be modified with the `allowedRoutes` field on each listener.
+If we want to make a listener available in all namespaces we can do it like this:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: eg
+spec:
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "www.example.com"
+      allowedRoutes:
+        namespaces:
+          from: All
+```
+
+Or if we only make it availabe from namespaces matching a selector:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: eg
+spec:
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "www.example.com"
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              gateway-access: "true"
+```
+
 ### HTTPRoute
 
 Now lets take a look at a simple example on how to expose an application with an HTTPRoute.
@@ -228,11 +268,110 @@ With these resources we can now access our application and the overall traffic f
 
 ![httproute](/images/2025-10-10-13-39-50.png)
 
+## Gateway vs Ingress
+
+You might be asking, why do we need Gateway API when we already have Ingress?
+
+First of all, development on Kubernetes Ingress is frozen, which means that any new features will be added to Gateway API from now on.
+This also means that most of the big providers have transitioned their implementation to use Gateway API.
+
+Second, the current implementation of Ingress in Kubernetes is very bare-bones and lacks extensibility, which has resulted in a big sprawl between the different implementations on how things are done.
+With Gateway API everyone is using the same standardized specification, while still allowing for extending functionality with implementation-specific resources.
+
+There are several other benefits of using Gateway API over Ingress, one of the most obvious improvements is with configuration and customization.
+
+With Ingress, this is usually handled with annotations on the Ingress resource and you could in a worst case scenario end up with something like this:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app
+  annotations:
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://example.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization,Content-Type"
+    nginx.ingress.kubernetes.io/cors-expose-headers: "X-Request-Id"
+    nginx.ingress.kubernetes.io/cors-max-age: "86400"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-svc
+                port:
+                  number: 80
+```
+
+With Gateway API however, you could do do the same like this:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: app
+spec:
+  parentRefs:
+    - name: edge
+  hostnames:
+    - app.example.com
+  rules:
+    - backendRefs:
+        - name: app-svc
+          port: 80
+---
+# SecurityPolicy: CORS + IP allowlist (replaces the Ingress annotations above)
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: app-security
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: app
+  cors:
+    allowOrigins: ["https://example.com"]
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowHeaders: ["Authorization", "Content-Type"]
+    exposeHeaders: ["X-Request-Id"]
+    allowCredentials: true
+    maxAge: 86400
+  authorization:
+    defaultAction: Deny
+    rules:
+      - action: Allow
+        principal:
+          clientCIDRs:
+            - 10.0.0.0/8
+            - 192.168.0.0/16
+```
+
+The HTTPRoute itself stays tidy and any extra customization can be offloaded to a SecurityPolicy, HTTPRouteFilter, BackendTrafficPolicy or ClientTrafficPolicy resource.
+
+By utilizing `spec.targetRefs`, this SecurityPolicy resource for example can be used per HTTPRoute or enfored for all routes on a specific Gateway.
+
+{{< notice note >}}
+[SecurityPolicy](https://gateway.envoyproxy.io/latest/concepts/gateway_api_extensions/security-policy/) is specific to Envoy Gateway, but other implementations should have similar ways of configuring these types of settings.
+{{</notice>}}
+
 ## In praise of good statuses
 
-When using Gateway API you can really tell that is a modern Kubernetes API with a lot of thought put into it. This is especially true when it comes to the status and conditions for all the resources.
+When using Gateway API you can really tell that is a modern Kubernetes API with a lot of thought put into it. This is especially true when it comes to the statuses and conditions for all the resources.
+
 Just by looking at the status of a resource you can quickly tell if everything is working or if there is something wrong with the configuration and _why_.
+
 Many Kubernetes APIs are unfortunately not great at this, so it is very refreshing to see it done well and it is a joy to work with.
+
+Examples from HTTPRoute and Gateway:
 
 **HTTPRoute**
 
@@ -355,96 +494,6 @@ _note: slightly modified for brevity_
 
 The full API documentation can be found [here](https://gateway-api.sigs.k8s.io/reference/spec)
 
-## Gateway vs Ingress
-
-You might be asking, why do we need Gateway API when we already have Ingress?
-
-First of all, development on Kubernetes Ingress is frozen, which means that any new features will be added to Gateway API from now on.
-
-Second, the current implementation of Ingress in Kubernetes is very bare-bones and lacks extensibility.
-This
-
-There are several benefits of using Gateway API over Ingress, and one of the most obvious improvements is with configuration and customization.
-
-With Ingress, this is usually handled with annotations on the Ingress resource and you could in a worst case scenario end up with something like this:
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: app
-  annotations:
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://example.com"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
-    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization,Content-Type"
-    nginx.ingress.kubernetes.io/cors-expose-headers: "X-Request-Id"
-    nginx.ingress.kubernetes.io/cors-max-age: "86400"
-    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
-    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16"
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: app.example.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: app-svc
-                port:
-                  number: 80
-```
-
-With Gateway API however, you could do do the same like this:
-
-```yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: app
-spec:
-  parentRefs:
-    - name: edge
-  hostnames:
-    - app.example.com
-  rules:
-    - backendRefs:
-        - name: app-svc
-          port: 80
----
-# SecurityPolicy: CORS + IP allowlist (replaces the Ingress annotations above)
-apiVersion: gateway.envoyproxy.io/v1alpha1
-kind: SecurityPolicy
-metadata:
-  name: app-security
-spec:
-  targetRefs:
-    - group: gateway.networking.k8s.io
-      kind: HTTPRoute
-      name: app
-  cors:
-    allowOrigins: ["https://example.com"]
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    allowHeaders: ["Authorization", "Content-Type"]
-    exposeHeaders: ["X-Request-Id"]
-    allowCredentials: true
-    maxAge: 86400
-  authorization:
-    defaultAction: Deny
-    rules:
-      - action: Allow
-        principal:
-          clientCIDRs:
-            - 10.0.0.0/8
-            - 192.168.0.0/16
-```
-
-The HTTPRoute itself stays tidy and any extra customization can be offloaded to a SecurityPolicy, HTTPRouteFilter, BackendTrafficPolicy or ClientTrafficPolicy resource.
-
-By utilizing `spec.targetRefs`, this SecurityPolicy resource for example can be used per HTTPRoute or enfored for all routes on a specific Gateway.
-
 ## Conclusion
 
 That concludes this post about Gateway API.
@@ -457,3 +506,7 @@ Useful links:
   - [Getting Started](https://gateway-api.sigs.k8s.io/guides)
   - [Glossary](https://gateway-api.sigs.k8s.io/concepts/glossary)
   - [API Reference](https://gateway-api.sigs.k8s.io/reference/spec)
+- Envoy Gateway
+  - [Documentation](https://gateway.envoyproxy.io/docs/)
+  - [Quickstart](https://gateway.envoyproxy.io/docs/tasks/quickstart)
+  - [Extensions](https://gateway.envoyproxy.io/docs/concepts/gateway_api_extensions)
