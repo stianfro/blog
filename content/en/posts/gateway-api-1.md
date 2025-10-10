@@ -9,7 +9,7 @@ title: "Gateway API for dummies"
 ---
 
 I recently had a use-case where I could finally tinker with Gateway API, a new interface for handling service traffic in Kubernetes. You can think of it as a successor to the current Ingress APIs.
-Gateway API is built and maintained by the Kubernetse Network Special Interest Group.
+Gateway API is built and maintained by the Kubernetes Network Special Interest Group.
 
 ## What is Gateway API?
 
@@ -184,7 +184,7 @@ spec:
           from: All
 ```
 
-Or if we only make it availabe from namespaces matching a selector:
+Or if we only make it available from namespaces matching a selector:
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -367,7 +367,7 @@ spec:
 
 The HTTPRoute itself stays tidy and any extra customization can be offloaded to a SecurityPolicy, HTTPRouteFilter, BackendTrafficPolicy or ClientTrafficPolicy resource.
 
-By utilizing `spec.targetRefs`, this SecurityPolicy resource for example can be used per HTTPRoute or enfored for all routes on a specific Gateway.
+By utilizing `spec.targetRefs`, this SecurityPolicy resource for example can be used per HTTPRoute or enforced for all routes on a specific Gateway.
 
 {{< notice note >}}
 [SecurityPolicy](https://gateway.envoyproxy.io/latest/concepts/gateway_api_extensions/security-policy/) is specific to Envoy Gateway, but other implementations should have similar ways of configuring these types of settings.
@@ -433,7 +433,7 @@ status:
           kind: HTTPRoute
 ```
 
-It is also very noticable when working with all the different resources. Every field of every CRD is extremely well documented and has great validation as well,
+It is also very noticeable when working with all the different resources. Every field of every CRD is extremely well documented and has great validation as well,
 
 Just take a look at the documentation for the [`.spec.hostnames`](https://github.com/kubernetes-sigs/gateway-api/blob/bc08c0ff375ad76fdda7089121c6e1e06662c137/apis/v1/httproute_types.go#L55-L125) field in the HTTPRoute resource as an example:
 
