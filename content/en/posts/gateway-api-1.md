@@ -4,13 +4,16 @@ draft: false
 tags:
   - kubernetes
   - network
+  - gateway-api
 title: "Gateway API for dummies"
 ---
 
 I recently had a use-case where I could finally tinker with Gateway API, a new interface for handling service traffic in Kubernetes. You can think of it as a successor to the current Ingress APIs.
 Gateway API is built and maintained by the Kubernetse Network Special Interest Group.
 
-What is important to be aware of is that Gateway API is just an API, it is just a set of CRDs that you install in your cluster and does not come with a controller of any kind. A separate Gateway Controller has to be installed for things to work, there are [many implementations to choose from](https://gateway-api.sigs.k8s.io/implementations) but some examples include Envoy Gateway, Traefik Proxy, Cilium and Istio.
+## What is Gateway API?
+
+Gateway API is essentially just an API, it is a set of CRDs that you install in your cluster and does not come with a controller of any kind. A separate Gateway Controller has to be installed for things to work, there are [many implementations to choose from](https://gateway-api.sigs.k8s.io/implementations) but some examples include Envoy Gateway, Traefik Proxy, Cilium and Istio.
 
 In this post I will focus on [Envoy Gateway](https://gateway.envoyproxy.io) but the general concepts should stay the same for other implementations.
 
@@ -20,7 +23,17 @@ Feel free to use it as a reference as you read on.
 ![gateway-api illustration](/images/2025-07-16-12-35-56.png)
 _Gateway API illustration from the official documentation_
 
-# GatewayClass
+If you are familiar with Ingress in Kubernetes, think of Gateway API like this:
+
+| Ingress API       | Gateway API                   |
+| ----------------- | ----------------------------- |
+| IngressClass      | GatewayClass                  |
+| IngressController | Gateway                       |
+| Ingress           | HTTPRoute, TLSRoute, TCPRoute |
+
+Let us go through the most important resources one by one.
+
+### GatewayClass
 
 We start at the top, with the GatewayClass (equivalent to an IngressClass).
 
@@ -54,7 +67,7 @@ metadata:
   name: private
 ```
 
-# Gateway
+### Gateway
 
 The next resource it the Gateway itself. In OpenShift this is equivalent to the `IngressController` resource but for other Ingress providers there is usually not a separate resource for this.
 The Gateway is responsible for configuring the infrastructure so that network traffic in some way (up to the implementation) can reach the cluster, for example with a LoadBalancer service, in addition to the software that routes this traffic (typically a reverse proxy of some sort).
@@ -151,7 +164,7 @@ In this case an httproute with `www.example.com` as the hostname would match the
 This can of course be tweaked and modified further and you can read more about it in the `HTTPRouteSpec` mentioned below.
 The tls listener can only be used by a TLSRoute.
 
-# HTTPRoute
+### HTTPRoute
 
 Now lets take a look at a simple example on how to expose an application with an HTTPRoute.
 
@@ -178,10 +191,15 @@ spec:
             value: /
 ```
 
-# TLSRoute
+For anyone who has worked with Ingress before, you can see that this looks very similar.
+The biggest change in this example is that instead of using `spec.ingressClass` you refer to the desired Gateway to be used using `spec.parentRefs`.
+
+### TLSRoute
+
+If we wanted to use the tls passthrough listener in the Gateway above, we would need to create a [TLSRoute](https://gateway-api.sigs.k8s.io/concepts/api-overview/?h=tlsroute) which is available in the Experimental Channel of Gateway API.
 
 ```yaml
-apiVersion: gateway.networking.k8s.io/v1
+apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: TLSRoute
 metadata:
   name: backend-tls
@@ -199,31 +217,24 @@ spec:
           weight: 1
 ```
 
-# TODO: change out this image with an own illustration
+### Traffic Overview
 
-![httproute](/images/2025-09-01-18-33-49.png)
+With these resources we can now access our application and the overall traffic flow looks like this:
 
-# Optional and Envoy-specific resources / Policy Resources
+1. Client sends an http request to the Gateway (usually via a LoadBalancer service)
+2. Gateway sees that the request matches one of its listeners
+3. HTTPRoute / TLSRoute sends the traffic to the correct backend according to its rules
+4. Service
 
-BackendTrafficPolicy, BackendTLSPolicy, SecurityPolicy
+![httproute](/images/2025-10-10-13-39-50.png)
 
-# WIP SCRIBBLES BELOW
-
-Instead of annotating an ingress with settings on how it should handle various types of traffic, you can use resources like BackendTrafficPolicy and (in the case of Envoy) BackendTLSPolicy.
-You can refer to these from an individual HTTPRoute or for the whole Gateway.
-instead of bla bla you can have httproute but also tlsroute and tcproute
-
-compare ingress / ingresscontroller (openshift) with gateway api
-
-praise statuses
+## In praise of good statuses
 
 When using Gateway API you can really tell that is a modern Kubernetes API with a lot of thought put into it. This is especially true when it comes to the status and conditions for all the resources.
 Just by looking at the status of a resource you can quickly tell if everything is working or if there is something wrong with the configuration and _why_.
 Many Kubernetes APIs are unfortunately not great at this, so it is very refreshing to see it done well and it is a joy to work with.
 
-httproute
-
-httproute status
+**HTTPRoute**
 
 ```yaml
 status:
@@ -233,35 +244,14 @@ status:
           reason: Accepted
           status: "True"
           type: Accepted
-      controllerName: gateway.envoyproxy.io/a-gatewayclass-controller
+      controllerName: gateway.envoyproxy.io/gatewayclass-controller
       parentRef:
         group: gateway.networking.k8s.io
         kind: Gateway
-        name: internal
-        namespace: gateway-a
+        name: eg
 ```
 
-gateway
-
-```yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: internal
-  namespace: gateway-a
-spec:
-  gatewayClassName: a-gatewayclass
-  listeners:
-    - allowedRoutes:
-        namespaces:
-          from: All
-      hostname: "*.marketing.example.com"
-      name: http
-      port: 8080
-      protocol: HTTP
-```
-
-status
+**Gateway**
 
 ```yaml
 status:
@@ -363,23 +353,102 @@ type HTTPRouteSpec struct {
 
 _note: slightly modified for brevity_
 
-envoy gateway
+The full API documentation can be found [here](https://gateway-api.sigs.k8s.io/reference/spec)
 
-metallb
+## Gateway vs Ingress
 
-backendtrafficpolicy
+You might be asking, why do we need Gateway API when we already have Ingress?
 
-tracing
-no luck with tlsroute for some reason.
+First of all, development on Kubernetes Ingress is frozen, which means that any new features will be added to Gateway API from now on.
 
-deployment modes, multi-tenancy (part 2?)
+Second, the current implementation of Ingress in Kubernetes is very bare-bones and lacks extensibility.
+This
 
-In my case this diagram will most of the time look like this:
-_TODO: stian in the diagram_
+There are several benefits of using Gateway API over Ingress, and one of the most obvious improvements is with configuration and customization.
 
-ns / ew
+With Ingress, this is usually handled with annotations on the Ingress resource and you could in a worst case scenario end up with something like this:
 
-In the next post I will go through how to set up Envoy Gateway for multi-tenancy.
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app
+  annotations:
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://example.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization,Content-Type"
+    nginx.ingress.kubernetes.io/cors-expose-headers: "X-Request-Id"
+    nginx.ingress.kubernetes.io/cors-max-age: "86400"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-svc
+                port:
+                  number: 80
+```
+
+With Gateway API however, you could do do the same like this:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: app
+spec:
+  parentRefs:
+    - name: edge
+  hostnames:
+    - app.example.com
+  rules:
+    - backendRefs:
+        - name: app-svc
+          port: 80
+---
+# SecurityPolicy: CORS + IP allowlist (replaces the Ingress annotations above)
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: app-security
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: app
+  cors:
+    allowOrigins: ["https://example.com"]
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowHeaders: ["Authorization", "Content-Type"]
+    exposeHeaders: ["X-Request-Id"]
+    allowCredentials: true
+    maxAge: 86400
+  authorization:
+    defaultAction: Deny
+    rules:
+      - action: Allow
+        principal:
+          clientCIDRs:
+            - 10.0.0.0/8
+            - 192.168.0.0/16
+```
+
+The HTTPRoute itself stays tidy and any extra customization can be offloaded to a SecurityPolicy, HTTPRouteFilter, BackendTrafficPolicy or ClientTrafficPolicy resource.
+
+By utilizing `spec.targetRefs`, this SecurityPolicy resource for example can be used per HTTPRoute or enfored for all routes on a specific Gateway.
+
+## Conclusion
+
+That concludes this post about Gateway API.
+If I ever write a new article on the topic it will be about the Gateway API [Inference Extension](https://gateway-api-inference-extension.sigs.k8s.io).
 
 Useful links:
 
@@ -388,11 +457,3 @@ Useful links:
   - [Getting Started](https://gateway-api.sigs.k8s.io/guides)
   - [Glossary](https://gateway-api.sigs.k8s.io/concepts/glossary)
   - [API Reference](https://gateway-api.sigs.k8s.io/reference/spec)
-
-If you are familiar with Ingress in Kubernetes, think of Gateway API like this:
-
-| Ingress API       | Gateway API                   |
-| ----------------- | ----------------------------- |
-| IngressClass      | GatewayClass                  |
-| IngressController | Gateway                       |
-| Ingress           | HTTPRoute, TLSRoute, TCPRoute |
