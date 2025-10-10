@@ -1,10 +1,10 @@
 ---
-date: "2025-07-01T15:41:19+02:00"
+date: "2025-10-10T00:00:00+02:00"
 draft: false
 tags:
   - kubernetes
   - network
-  - gateway-api
+  - Gateway API
 title: "Gateway API for dummies"
 ---
 
@@ -164,7 +164,8 @@ In this case an httproute with `www.example.com` as the hostname would match the
 This can of course be tweaked and modified further and you can read more about it in the `HTTPRouteSpec` mentioned below.
 The tls listener can only be used by a TLSRoute.
 
-By default a Gateway can only be used by \*routes in the same namespace, this can be modified with the `allowedRoutes` field on each listener.
+By default a Gateway can only be used by routes in the same namespace, this can be modified with the `allowedRoutes` field on each listener.
+
 If we want to make a listener available in all namespaces we can do it like this:
 
 ```yaml
@@ -231,12 +232,19 @@ spec:
             value: /
 ```
 
-For anyone who has worked with Ingress before, you can see that this looks very similar.
-The biggest change in this example is that instead of using `spec.ingressClass` you refer to the desired Gateway to be used using `spec.parentRefs`.
+At first glance this [looks similar](https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource) to an Ingress resource, but the actual structure is in fact quite different.
+
+Some of the biggest differences:
+
+- Because it is an HTTPRoute, http is implicit and does not need to be specified under rules
+- parentRefs is used to select the desired Gateway(s) instead of ingressClassName
+- Annotations are not used for configuration (more on this below)
+
+To convert existing ingresses to their corresponding Gateway API resources, some providers support using the tool [ingress2gateway](https://github.com/kubernetes-sigs/ingress2gateway).
 
 ### TLSRoute
 
-If we wanted to use the tls passthrough listener in the Gateway above, we would need to create a [TLSRoute](https://gateway-api.sigs.k8s.io/concepts/api-overview/?h=tlsroute) which is available in the Experimental Channel of Gateway API.
+If we wanted to use the tls passthrough listener in the Gateway above, we would need to create a [TLSRoute](https://gateway-api.sigs.k8s.io/concepts/api-overview/?h=tlsroute#tlsroute) which is available in the Experimental Channel of Gateway API.
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1alpha2
@@ -264,7 +272,7 @@ With these resources we can now access our application and the overall traffic f
 1. Client sends an http request to the Gateway (usually via a LoadBalancer service)
 2. Gateway sees that the request matches one of its listeners
 3. HTTPRoute / TLSRoute sends the traffic to the correct backend according to its rules
-4. Service
+4. Service proxies the traffic to the pod(s) running the application
 
 ![httproute](/images/2025-10-10-13-39-50.png)
 
@@ -274,6 +282,8 @@ You might be asking, why do we need Gateway API when we already have Ingress?
 
 First of all, development on Kubernetes Ingress is frozen, which means that any new features will be added to Gateway API from now on.
 This also means that most of the big providers have transitioned their implementation to use Gateway API.
+
+![frozen](/images/2025-10-10-17-04-41.png)
 
 Second, the current implementation of Ingress in Kubernetes is very bare-bones and lacks extensibility, which has resulted in a big sprawl between the different implementations on how things are done.
 With Gateway API everyone is using the same standardized specification, while still allowing for extending functionality with implementation-specific resources.
@@ -496,8 +506,9 @@ The full API documentation can be found [here](https://gateway-api.sigs.k8s.io/r
 
 ## Conclusion
 
-That concludes this post about Gateway API.
-If I ever write a new article on the topic it will be about the Gateway API [Inference Extension](https://gateway-api-inference-extension.sigs.k8s.io).
+That concludes this post about Gateway API, thanks for reading!
+
+If I ever write a new article on the topic it will be about the Gateway API [Inference Extension](https://gateway-api-inference-extension.sigs.k8s.io) and [Envoy AI Gateway](aigateway.envoyproxy.io/docs).
 
 Useful links:
 
