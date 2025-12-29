@@ -4,7 +4,6 @@ kind: Kustomization
 namespace: blog
 
 resources:
-  - namespace.yaml
   - deployment.yaml
   - service.yaml
   - httproute-public.yaml
