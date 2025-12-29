@@ -7,7 +7,7 @@ spec:
     - name: eg
       namespace: envoy-gateway-system
   hostnames:
-    - blog.talos.froystein.jp
+    - blog-pr-0.talos.froystein.jp
   rules:
     - backendRefs:
         - name: blog

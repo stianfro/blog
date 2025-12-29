@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: blog
-  labels:
-    app.kubernetes.io/name: blog
-    app.kubernetes.io/instance: prod
