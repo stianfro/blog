@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: blog-dev
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - httproute.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: blog
+      app.kubernetes.io/managed-by: kargo
+    includeSelectors: false
+
+images:
+  - name: ghcr.io/stianfro/blog
+    newTag: latest
