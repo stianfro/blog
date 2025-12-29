@@ -30,7 +30,7 @@ spec:
         app.kubernetes.io/name: blog
     spec:
       containers:
-      - image: ghcr.io/stianfro/blog:0.1.2
+      - image: ghcr.io/stianfro/blog:sha-921ae67-dev
         livenessProbe:
           httpGet:
             path: /healthz
