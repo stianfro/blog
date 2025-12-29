@@ -26,6 +26,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      pull-requests: write
 
     steps:
       - name: Checkout repository
@@ -90,3 +91,15 @@ jobs:
             BASE_URL=${{ env.BASE_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Comment preview URL on PR
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## 🚀 Preview Deployment
+
+            Your preview is available at: **https://blog-pr-${{ github.event.pull_request.number }}.talos.froystein.jp**
+
+            > Note: It may take a minute for ArgoCD to deploy the preview.
