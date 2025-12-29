@@ -1,5 +1,5 @@
-# Build stage - Hugo with extended features
-FROM hugomods/hugo:reg-exts AS builder
+# Build stage - Hugo extended (required for SCSS)
+FROM hugomods/hugo:exts AS builder
 
 WORKDIR /src
 
