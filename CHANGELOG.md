@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.3](https://github.com/stianfro/blog/compare/v0.1.2...v0.1.3) (2025-12-29)
+
+
+### Features
+
+* simplify to prod-only with PR previews ([#12](https://github.com/stianfro/blog/issues/12)) ([2ac596d](https://github.com/stianfro/blog/commit/2ac596de85db3fae7fe3b1cdb58ffbbda3eeaf38))
+
+
+### Bug Fixes
+
+* **infra:** remove duplicate namespace from prod ([#11](https://github.com/stianfro/blog/issues/11)) ([1b9e611](https://github.com/stianfro/blog/commit/1b9e611556c1b2606f2cf9f4aa9054752ea71c49))
+
 ## [0.1.2](https://github.com/stianfro/blog/compare/v0.1.1...v0.1.2) (2025-12-29)
 
 
