@@ -3,11 +3,14 @@ FROM hugomods/hugo:exts AS builder
 
 WORKDIR /src
 
+# Build argument for environment-specific baseURL
+ARG BASE_URL=https://blog.froystein.jp/
+
 # Copy source files
 COPY . .
 
-# Build the site
-RUN hugo --gc --minify
+# Build the site with the specified baseURL
+RUN hugo --gc --minify --baseURL=${BASE_URL}
 
 # Production stage - nginx
 FROM nginx:1.27-alpine

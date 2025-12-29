@@ -26,6 +26,15 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        include:
+          - environment: prod
+            base_url: https://blog.froystein.jp/
+            suffix: ""
+          - environment: dev
+            base_url: https://blog.talos.froystein.jp/
+            suffix: "-dev"
 
     steps:
       - name: Checkout repository
@@ -50,14 +59,14 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
-            type=semver,pattern={{major}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
-            type=semver,pattern={{version}},enable=${{ inputs.version == '' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.version == '' }}
-            type=semver,pattern={{major}},enable=${{ inputs.version == '' }}
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || inputs.version != '' }}
+            type=semver,pattern={{version}}${{ matrix.suffix }},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}}.{{minor}}${{ matrix.suffix }},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}}${{ matrix.suffix }},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{version}}${{ matrix.suffix }},enable=${{ inputs.version == '' }}
+            type=semver,pattern={{major}}.{{minor}}${{ matrix.suffix }},enable=${{ inputs.version == '' }}
+            type=semver,pattern={{major}}${{ matrix.suffix }},enable=${{ inputs.version == '' }}
+            type=sha,prefix=sha-,suffix=${{ matrix.suffix }}
+            type=raw,value=latest${{ matrix.suffix }},enable=${{ github.ref == 'refs/heads/main' || inputs.version != '' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -66,5 +75,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          build-args: |
+            BASE_URL=${{ matrix.base_url }}
+          cache-from: type=gha,scope=${{ matrix.environment }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.environment }}
