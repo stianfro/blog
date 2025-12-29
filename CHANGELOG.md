@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/stianfro/blog/compare/v0.1.1...v0.1.2) (2025-12-29)
+
+
+### Features
+
+* **build:** add environment-specific image builds ([#9](https://github.com/stianfro/blog/issues/9)) ([921ae67](https://github.com/stianfro/blog/commit/921ae679bdeee8f02aca737fbdc4db17b5faf013))
+
 ## [0.1.1](https://github.com/stianfro/blog/compare/v0.1.0...v0.1.1) (2025-12-29)
 
 
