@@ -7,6 +7,9 @@ tags:
   - registry
   - guide
 title: "Configuring clients to use a container registry mirror"
+description: "Configure Docker, Docker Desktop, CRI-O, Podman, and OpenShift to use a container registry mirror."
+images:
+  - /images/2025-06-04-13-44-18.png
 ---
 
 This is part two in a series of blog posts about container registry mirrors.

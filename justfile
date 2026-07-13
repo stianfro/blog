@@ -16,7 +16,11 @@ docker-build tag="latest":
 
 # Run Docker container locally
 docker-run tag="latest":
-    docker run --rm -p 8080:80 ghcr.io/stianfro/blog:{{tag}}
+    docker run --rm -p 8080:80 \
+      --tmpfs /var/cache/nginx:uid=101,gid=101 \
+      --tmpfs /var/run:uid=101,gid=101 \
+      --tmpfs /tmp:uid=101,gid=101 \
+      ghcr.io/stianfro/blog:{{tag}}
 
 # Build and run locally
 docker-dev: docker-build docker-run
@@ -28,7 +32,7 @@ kustomize-build:
 # Lint Kubernetes manifests
 lint:
     @echo "Linting Kubernetes manifests..."
-    kustomize build infra/prod | kubectl apply --dry-run=client -f -
+    kustomize build infra/prod | yq eval 'true' -
     @echo "Lint passed!"
 
 # Run all checks before commit

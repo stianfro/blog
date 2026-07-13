@@ -8,11 +8,11 @@ enableRobotsTXT: true
 
 params:
   _merge: deep
+  description: Practical notes about Kubernetes, OpenShift, container infrastructure, and cloud-native operations.
   rssFullContent: true
   homePagerSize: 5
   sectionPagerSize: 10000
-  images:
-    - favicon.ico # /static/favicon.ico
+  author: Stian Frøystein
 
 frontmatter:
   lastmod: ["lastmod", ":default"] # lastmod in front matter has highest precedence
@@ -29,7 +29,7 @@ languages:
     languageCode: en-US
     languageDirection: ltr
     languageName: English
-    title: blog.froystein.jp
+    title: Stian Frøystein's Kubernetes Blog
     weight: 10
     menus:
       main:
@@ -45,9 +45,11 @@ languages:
         - name: About
           pageRef: /about
           weight: 40
+        - name: Privacy
+          pageRef: /privacy
+          weight: 50
     params:
       dateFormat: Jan 02, 2006 # See https://gohugo.io/functions/time/format/
-      author: Stian Frøystein
       footer:
         copyright:
           yearStart: 2025 # Optional
@@ -56,3 +58,6 @@ languages:
 module:
   imports:
     - path: github.com/martignoni/hugo-notice
+
+taxonomies:
+  tag: tags

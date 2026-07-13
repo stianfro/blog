@@ -1,0 +1,34 @@
+<link rel="canonical" href="{{ .Permalink }}">
+{{ template "_internal/twitter_cards.html" . }}
+<script src="/analytics-config.js"></script>
+<script defer src="/analytics.js"></script>
+
+{{- if .IsHome }}
+{{- $schema := dict
+  "@context" "https://schema.org"
+  "@type" "Blog"
+  "name" site.Title
+  "description" site.Params.description
+  "url" .Permalink
+  "inLanguage" site.Language.LanguageCode
+  "author" (dict "@type" "Person" "name" site.Params.author "url" "https://www.froystein.jp/")
+-}}
+<script type="application/ld+json">{{ $schema | jsonify | safeJS }}</script>
+{{- else if and .IsPage (eq .Section "posts") }}
+{{- $schema := dict
+  "@context" "https://schema.org"
+  "@type" "BlogPosting"
+  "headline" .Title
+  "description" .Description
+  "url" .Permalink
+  "mainEntityOfPage" .Permalink
+  "datePublished" (.Date.Format "2006-01-02T15:04:05Z07:00")
+  "dateModified" (.Lastmod.Format "2006-01-02T15:04:05Z07:00")
+  "inLanguage" site.Language.LanguageCode
+  "author" (dict "@type" "Person" "name" site.Params.author "url" "https://www.froystein.jp/")
+-}}
+{{- with .Params.images }}
+  {{- $schema = merge $schema (dict "image" ((index . 0) | absURL)) }}
+{{- end }}
+<script type="application/ld+json">{{ $schema | jsonify | safeJS }}</script>
+{{- end }}
