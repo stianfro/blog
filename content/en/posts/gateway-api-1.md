@@ -6,6 +6,9 @@ tags:
   - network
   - Gateway API
 title: "Gateway API for dummies"
+description: "A practical introduction to Kubernetes Gateway API concepts, resources, and Envoy Gateway configuration examples."
+images:
+  - /images/2025-07-16-12-35-56.png
 ---
 
 I recently had a use-case where I could finally tinker with Gateway API, a new interface for handling service traffic in Kubernetes. You can think of it as a successor to the current Ingress APIs.

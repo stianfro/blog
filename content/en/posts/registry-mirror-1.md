@@ -6,6 +6,7 @@ tags:
   - registry
   - guide
 title: "How to set up a simple registry mirror in Kubernetes"
+description: "Deploy a lightweight pull-through container registry mirror in Kubernetes, including storage, ingress, and upstream configuration."
 ---
 
 For the longest time I held off on setting up a container registry mirror because I assumed I would have to set up a
