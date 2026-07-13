@@ -107,3 +107,6 @@ HTTPRouteFilter
 namespaces
 IngressClassName
 ingressClassName
+Frøystein
+Umami
+png
