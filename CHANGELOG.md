@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/stianfro/blog/compare/v0.1.3...v0.1.4) (2026-07-13)
+
+
+### Features
+
+* improve blog search metadata and privacy ([#15](https://github.com/stianfro/blog/issues/15)) ([12e7d26](https://github.com/stianfro/blog/commit/12e7d26a6f51d69615c01bf2417e8f8dbf433cda))
+
 ## [0.1.3](https://github.com/stianfro/blog/compare/v0.1.2...v0.1.3) (2025-12-29)
 
 
